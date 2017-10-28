@@ -1,0 +1,10 @@
+name = USPS Multi-Package
+description = Integrates USPS with Commerce Shipping to rate selected USPS services during checkout.
+package = Custom
+dependencies[] = commerce
+dependencies[] = commerce_shipping
+dependencies[] = commerce_physical
+
+core = 7.x
+version = 7.x-1.0
+

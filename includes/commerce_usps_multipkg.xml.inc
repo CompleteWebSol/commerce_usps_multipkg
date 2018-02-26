@@ -42,7 +42,7 @@ function commerce_usps_multipkg_rate_v4_request($order, $shipping_address) {
       $package->addChild('Pounds', $pkg['weight']['pounds']); //$weight['pounds']);
       $package->addChild('Ounces', $pkg['weight']['ounces']); //$weight['ounces']);
       $package->addChild('Container', 'VARIABLE');
-      $package->addChild('Size', $pkg['size']); //'REGULAR');
+      $package->addChild('Size', 'REGULAR'); //$pkg['size']); //'REGULAR');
       $package->addChild('Width', $pkg['dimensions']['width']); //'');
       $package->addChild('Length', $pkg['dimensions']['length']); //'');
       $package->addChild('Height', $pkg['dimensions']['height']); //'');
@@ -114,7 +114,7 @@ function commerce_usps_multipkg_intl_rate_v2_request($order, $shipping_address) 
     $package->addChild('ValueOfContents', commerce_currency_amount_to_decimal($shipment_value, commerce_default_currency()));
     $package->addChild('Country', commerce_usps_multipkg_country_get_predefined_list($shipping_address['country']));
     $package->addChild('Container', 'RECTANGULAR');
-    $package->addChild('Size', $pkg['size']); //'REGULAR');
+    $package->addChild('Size', 'REGULAR'); //$pkg['size']); //'REGULAR');
     $package->addChild('Width', $pkg['dimensions']['width']); //'');
     $package->addChild('Length', $pkg['dimensions']['length']); //'');
     $package->addChild('Height', $pkg['dimensions']['height']); //'');
@@ -227,7 +227,8 @@ function _commerce_usps_multipkg_get_packages($order) {
         
         
         // loop for quantity
-        for($qty=0; $qty<$line_item_wrapper->quantity->value();$qty++) {
+        $line_qty = $line_item_wrapper->quantity->value();
+        for($qty=0; $qty<$line_qty;$qty++) {
           $package_collections = field_collection_item_load_multiple($collections);
           
           
@@ -361,5 +362,42 @@ function _commerce_usps_multipkg_get_packages($order) {
       }
     }
   }
+  // Now add 'current package' if it has something in it.
+  if ($currentWeight > 0) {
+    $lbs = floor($currentWeight);
+    $oz = $currentWeight - $lbs;
+    $oz = ceil($oz*16);
+    $girth = $box_dims['width'] * 2 + $box_dims['height'] * 2;
+    if($box_dims['width']>12 || $box_dims['height']>12 || $box_dims['length']>12) {
+      $size = "LARGE";
+    } else {
+      $size = "REGULAR";
+    }
+    $packages[] = array(
+      'weight' => array(
+        'weight' => $currentWeight,
+        'unit' => 'lb',
+        'pounds' => $lbs,
+        'ounces' => $oz,
+      ),
+      'dimensions' => array(
+        'length' => $defaultLength,
+        'width' => $defaultWidth,
+        'height' => $defaultHeight,
+        'volume' => $default_package_volume,
+        'unit' => 'in'
+      ),
+      'size' => $size,
+    );
+    
+    $total_package_count++;
+    $total_package_weight+=$currentWeight;
+  }
+  $order->order_packages = array('count'=>$total_package_count,'weight'=>$total_package_weight);
+  // Is there a partial package going?
+  
+  //    dpm($packages);
+  // we can eliminate and reference array directly.
+  $number_of_packages = count($packages);
   return $packages;
 }
